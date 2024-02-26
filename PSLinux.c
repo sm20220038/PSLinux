@@ -76,7 +76,20 @@ void print_process_info(const char *pid){
 		}
 	}
 	fclose(cmdline_file);
-	printf("%-8s %5s %3c %-3s\n", user, pid, state, cmdline);
+	//Pronalazenje rss procesa
+	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/status", pid);
+	cmdline_file = fopen(cmdline_path, "r");
+	if(cmdline_file == NULL){
+		fprintf(stderr, "Greska prilikom otvaranja status fajla za proces: %s\n", pid);
+		return;
+	}
+	while(fgets(line, CMDLINE_PATH_MAXSIZE, cmdline_file) != NULL){
+		if(sscanf(line, "VmRSS: %li KB\n", &rss) == 1){
+			break;
+		}
+	}
+	fclose(cmdline_file);
+	printf("%-8s %5s %6li    ?     %3c   %-3s\n", user, pid, rss, state, cmdline);
 }
 
 void list_processes(){
@@ -95,12 +108,11 @@ void list_processes(){
 			print_process_info(entry->d_name);
 		}
 	}
-
 	closedir(proc_dir);
 }
 
 int main(int argc, char *argv[]){
-	printf("USER\tPID\tSTAT\tCOMMAND\n");
+	printf("USER\tPID\tRSS\tTTY\tSTAT\tCOMMAND\n");
 	list_processes();	
 	return 0;
 }
