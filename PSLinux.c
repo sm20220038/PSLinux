@@ -8,7 +8,6 @@
 
 #define CMDLINE_PATH_MAXSIZE 100
 
-#define MAX get_term_width();
 //Funkcija koja proverava da li string sadrzi samo brojeve
 int is_number(const char *str) {
     while (*str) {
@@ -24,7 +23,7 @@ int is_number(const char *str) {
 void print_process_info(const char *pid){
 	char cmdline_path[CMDLINE_PATH_MAXSIZE];
 	FILE *cmdline_file;
-	char cmdline[CMDLINE_PATH_MAXSIZE];
+	char cmdline[CMDLINE_PATH_MAXSIZE], line[CMDLINE_PATH_MAXSIZE];
 	char user[64];
 	unsigned int pid_val;
 	char state;
@@ -35,23 +34,20 @@ void print_process_info(const char *pid){
 	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/cmdline", pid);
 	cmdline_file = fopen(cmdline_path, "r");
 	if(cmdline_file == NULL){
-		fprintf(stderr, "Error while opening cmdline file for process %s\n", pid);
+		fprintf(stderr, "Greska prilikom otvaranja cmdline fajla za proces: %s\n", pid);
 		return;
 	}
-	//Parsiranje fajla da bi se dobile trazene informacije
-	//fscanf(cmdline_file, "%u %*s %c %s", &pid_val, &state, &cmdline);
-	//Pronalazenje username vlasnika procesa
 	if(fgets(cmdline, CMDLINE_PATH_MAXSIZE, cmdline_file) != NULL){
 		//Brisanje pratecih karaktera za novi red
 		cmdline[strcspn(cmdline, "\n")] = '\0';
-		//printf("%-8s %5s %s\n", user, pid, cmdline);
 	}
 	fclose(cmdline_file);
 
+	//Pronalazenje username vlasnika procesa
 	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/status", pid);
 	cmdline_file = fopen(cmdline_path, "r");
 	if(cmdline_file == NULL){
-		fprintf(stderr, "Error while opening status file for process %s\n", pid);
+		fprintf(stderr, "Greska prilikom otvaranja status fajla za proces: %s\n", pid);
 		return;
 	}
 	while(fgets(cmdline_path, CMDLINE_PATH_MAXSIZE, cmdline_file)){
@@ -67,8 +63,20 @@ void print_process_info(const char *pid){
 		}
 	}
 	fclose(cmdline_file);
-	printf("%-8s %5s %s\n", user, pid, cmdline);
-	
+	//Pronalazenje statusa procesa
+	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/status", pid);
+	cmdline_file = fopen(cmdline_path, "r");
+	if(cmdline_file == NULL){
+		fprintf(stderr, "Greska prilikom otvaranja status fajla za proces: %s\n", pid);
+		return;
+	}
+	while(fgets(line, CMDLINE_PATH_MAXSIZE, cmdline_file) != NULL){
+		if(sscanf(line, "State:\t%c", &state) == 1){
+			break;
+		}
+	}
+	fclose(cmdline_file);
+	printf("%-8s %5s %3c %-3s\n", user, pid, state, cmdline);
 }
 
 void list_processes(){
@@ -92,7 +100,7 @@ void list_processes(){
 }
 
 int main(int argc, char *argv[]){
-	printf("USER       PID\tCOMMAND\n");
+	printf("USER\tPID\tSTAT\tCOMMAND\n");
 	list_processes();	
 	return 0;
 }
