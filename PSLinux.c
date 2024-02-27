@@ -30,7 +30,8 @@ void print_process_info(const char *pid){
 	unsigned int usertime, systemtime;
 	long int rss;
 	long int vsz;
-	char tty[8];
+	int flag = 0;
+	//char tty[8];
 
 	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/cmdline", pid);
 	cmdline_file = fopen(cmdline_path, "r");
@@ -64,7 +65,6 @@ void print_process_info(const char *pid){
 		}
 	}
 	fclose(cmdline_file);
-	//Pronalazenje statusa procesa
 	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/status", pid);
 	cmdline_file = fopen(cmdline_path, "r");
 	if(cmdline_file == NULL){
@@ -72,40 +72,28 @@ void print_process_info(const char *pid){
 		return;
 	}
 	while(fgets(line, CMDLINE_PATH_MAXSIZE, cmdline_file) != NULL){
+		//Pronalazenje statusa procesa
 		if(sscanf(line, "State:\t%c", &state) == 1){
-			break;
+			flag++;
 		}
-	}
-	fclose(cmdline_file);
-	//Pronalazenje rss procesa
-	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/status", pid);
-	cmdline_file = fopen(cmdline_path, "r");
-	if(cmdline_file == NULL){
-		fprintf(stderr, "Greska prilikom otvaranja status fajla za proces: %s\n", pid);
-		return;
-	}
-	while(fgets(line, CMDLINE_PATH_MAXSIZE, cmdline_file) != NULL){
+		//Pronalazenje rss procesa
 		if(sscanf(line, "VmRSS: %li KB\n", &rss) == 1){
+			flag++;
+		}
+		//Pronalazenje vsz procesa
+		if(sscanf(line, "VmSize: %li KB\n", &vsz) == 1){
+			flag++;
+		}
+		if(flag == 3){
 			break;
 		}
 	}
 	fclose(cmdline_file);
-	//Pronalazenje vsz procesa
-	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/status", pid);
-	cmdline_file = fopen(cmdline_path, "r");
-	if(cmdline_file == NULL){
-		fprintf(stderr, "Greska prilikom otvaranja status fajla za proces: %s\n", pid);
-		return;
-	}
-	while(fgets(line, CMDLINE_PATH_MAXSIZE, cmdline_file) != NULL){
-		if(sscanf(line, "VmSize: %li KB\n", &vsz) == 1){
-			break;
-		}
-	}
+	//Skracivanje na sestocifreni broj radi lepseg prikaza
 	while(vsz > 999999){
 		vsz /= 10;
 	}
-	fclose(cmdline_file);
+	//fclose(cmdline_file);
 	printf("%-8s %5s %6li %6li    ?     %3c   %-3s\n", user, pid, vsz, rss, state, cmdline);
 }
 
