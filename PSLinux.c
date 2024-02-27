@@ -129,7 +129,12 @@ void list_processes(){
 }
 
 int main(int argc, char *argv[]){
+	if(argv[1] != NULL && !strcmp(argv[1], "--help")){
+		printf(" main [options]\n\n Try 'main --help <simple|list|output|threads|misc|all>'\n  or 'main --help <s|l|o|t|m|a>'\n for additional help text.\n");
+		return 0;
+	}
+	//printf("Prvi argument: %s, Drugi argument: %s, i broj argumenata je:%d\n", argv[0],argv[1], argc);
 	printf("USER\tPID\tVSZ\tRSS\tTTY\tSTAT\tCOMMAND\n");
-	list_processes();	
+	list_processes();
 	return 0;
 }
