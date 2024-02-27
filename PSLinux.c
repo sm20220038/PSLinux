@@ -29,6 +29,7 @@ void print_process_info(const char *pid){
 	char state;
 	unsigned int usertime, systemtime;
 	long int rss;
+	long int vsz;
 	char tty[8];
 
 	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/cmdline", pid);
@@ -89,7 +90,23 @@ void print_process_info(const char *pid){
 		}
 	}
 	fclose(cmdline_file);
-	printf("%-8s %5s %6li    ?     %3c   %-3s\n", user, pid, rss, state, cmdline);
+	//Pronalazenje vsz procesa
+	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/status", pid);
+	cmdline_file = fopen(cmdline_path, "r");
+	if(cmdline_file == NULL){
+		fprintf(stderr, "Greska prilikom otvaranja status fajla za proces: %s\n", pid);
+		return;
+	}
+	while(fgets(line, CMDLINE_PATH_MAXSIZE, cmdline_file) != NULL){
+		if(sscanf(line, "VmSize: %li KB\n", &vsz) == 1){
+			break;
+		}
+	}
+	while(vsz > 999999){
+		vsz /= 10;
+	}
+	fclose(cmdline_file);
+	printf("%-8s %5s %6li %6li    ?     %3c   %-3s\n", user, pid, vsz, rss, state, cmdline);
 }
 
 void list_processes(){
@@ -112,7 +129,7 @@ void list_processes(){
 }
 
 int main(int argc, char *argv[]){
-	printf("USER\tPID\tRSS\tTTY\tSTAT\tCOMMAND\n");
+	printf("USER\tPID\tVSZ\tRSS\tTTY\tSTAT\tCOMMAND\n");
 	list_processes();	
 	return 0;
 }
