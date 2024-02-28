@@ -141,10 +141,6 @@ void print_process_info(const char *pid){
 	struct stat attr;
 	stat(cmdline_path, &attr);
 	struct tm tmProc = *localtime(&(attr.st_ctime));
-	if(tmCurr.tm_mday > tmProc.tm_mday){
-		printf("%-8s %5s %6li %6li    ?     %3c %i.%i  %-3s\n", user, pid, vsz, rss, state, tmProc.tm_mday, tmProc.tm_mon, utime, cmdline);
-		return;
-	}
 	char time[10];
 	strftime(time, 10, "%H:%M", localtime(&(attr.st_ctime)));
 
@@ -155,9 +151,17 @@ void print_process_info(const char *pid){
 	unsigned long long currentSeconds = current.tv_sec;
 	unsigned long long elapsedTime = currentSeconds - (starttime / sysconf(_SC_CLK_TCK));
 	float cpuUtilization = ((usertime + systime)*100.0)/(elapsedTime * sysconf(_SC_CLK_TCK));
-
-
-	printf("%-8s %5s %.1f %6li %6li    ?     %3c %s %i:%i  %-3s\n", user, pid, cpuUtilization, vsz, rss, state, time, hour, minute, cmdline);
+	
+	//Pravljenje %MEM sekcije
+	long int pages = sysconf(_SC_PHYS_PAGES);
+	long int pageSize = sysconf(_SC_PAGE_SIZE);
+	long int phsyicalMem = pages * pageSize;
+	float memUtilization = ((float)rss*1000.0 / (float)phsyicalMem) * 100.0;
+	if(tmCurr.tm_mday > tmProc.tm_mday){
+		printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %s %i.%i %i:%i %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, tmProc.tm_mday, tmProc.tm_mon, hour, minute, cmdline);
+		return;
+	}
+	printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %s %i:%i  %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, time, hour, minute, cmdline);
 }
 
 void list_processes(){
@@ -186,7 +190,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	//printf("Prvi argument: %s, Drugi argument: %s, i broj argumenata je:%d\n", argv[0],argv[1], argc);
-	printf("USER\tPID   %%CPU   VSZ     RSS   TTY  STAT  START TIME\tCOMMAND\n");
+	printf("USER\tPID   %%CPU %%MEM   VSZ     RSS   TTY  STAT  START TIME\tCOMMAND\n");
 	list_processes();
 	return 0;
 }
