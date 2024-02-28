@@ -8,6 +8,7 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
 #define _XOPEN_SOURCE 700
 #define CMDLINE_PATH_MAXSIZE 100
 #define MAX_STAT_LEN 128
@@ -28,14 +29,13 @@ void print_process_info(const char *pid){
 	FILE *cmdline_file;
 	char cmdline[CMDLINE_PATH_MAXSIZE], line[CMDLINE_PATH_MAXSIZE];
 	char user[64];
-	unsigned int pid_val;
 	char state;
-	unsigned int usertime, systemtime;
+	/* unsigned int usertime, systemtime;  */
 	long int rss;
 	long int vsz;
 	int flag = 0;
 	//char tty[8];
-
+	
 	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/cmdline", pid);
 	cmdline_file = fopen(cmdline_path, "r");
 	if(cmdline_file == NULL){
@@ -68,6 +68,7 @@ void print_process_info(const char *pid){
 		}
 	}
 	fclose(cmdline_file);
+
 	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/status", pid);
 	cmdline_file = fopen(cmdline_path, "r");
 	if(cmdline_file == NULL){
@@ -103,20 +104,55 @@ void print_process_info(const char *pid){
 		fprintf(stderr, "Greska prilikom otvaranja stat fajla za proces: %s\n", pid);
 		return;
 	}
+	char buffer[MAX_STAT_LEN];
+	fgets(buffer, MAX_STAT_LEN, cmdline_file);
 	fclose(cmdline_file);
+
+	char *token = strtok(buffer, " ");
+	char utime[15];
+	char stime[15];
+    int i = 1;
+    while (token != NULL) {
+        if (i == 14) {
+        	strcpy(utime,token);
+        }else if (i == 15) {
+        	strcpy(stime, token);
+            break;
+        }
+        token = strtok(NULL, " "); // Continue tokenizing
+        i++;
+    }
+	long int usertime = atoi(utime);
+	long int systime = atoi(stime);
+	int collective = usertime + systime;
+	int minute = 0;
+	int hour = 0;
+	while(collective >= 60){
+		minute++;
+		collective = collective - 60;
+	}
+	while(minute >= 60){
+		hour++;
+		minute = minute - 60;
+	}
 	//Uzimanje vremena i poredjenje sa trenutnim danom
 	time_t currentTime = time(NULL);
 	struct tm tmCurr = *localtime(&currentTime);
 	struct stat attr;
 	stat(cmdline_path, &attr);
-	struct tm tm2 = *localtime(&(attr.st_ctime));
-	if(tmCurr.tm_mday > tm2.tm_mday){
-		printf("%-8s %5s %6li %6li    ?     %3c %i.%i  %-3s\n", user, pid, vsz, rss, state, tm2.tm_mday, tm2.tm_mon, cmdline);
+	struct tm tmProc = *localtime(&(attr.st_ctime));
+	if(tmCurr.tm_mday > tmProc.tm_mday){
+		printf("%-8s %5s %6li %6li    ?     %3c %i.%i  %-3s\n", user, pid, vsz, rss, state, tmProc.tm_mday, tmProc.tm_mon, utime, cmdline);
 		return;
 	}
 	char time[10];
 	strftime(time, 10, "%H:%M", localtime(&(attr.st_ctime)));
-	printf("%-8s %5s %6li %6li    ?     %3c %s  %-3s\n", user, pid, vsz, rss, state, time, cmdline);
+
+	//Pravljenje %CPU sekcije
+	
+
+
+	printf("%-8s %5s %6li %6li    ?     %3c %s %i:%i  %-3s\n", user, pid, vsz, rss, state, time, hour, minute, cmdline);
 }
 
 void list_processes(){
@@ -124,6 +160,7 @@ void list_processes(){
 	struct dirent *entry;
 	//Otvara /proc direktorijum
 	proc_dir = opendir("/proc");
+
 	if(proc_dir == NULL){
 		perror("Error while opening /proc directory\n");
 		return;
@@ -144,7 +181,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	//printf("Prvi argument: %s, Drugi argument: %s, i broj argumenata je:%d\n", argv[0],argv[1], argc);
-	printf("USER\tPID\tVSZ\tRSS\tTTY  STAT START\tCOMMAND\n");
+	printf("USER\tPID\tVSZ\tRSS\tTTY  STAT START TIME\tCOMMAND\n");
 	list_processes();
 	return 0;
 }
