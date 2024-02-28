@@ -5,12 +5,12 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <pwd.h>
-#include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 
 #define _XOPEN_SOURCE 700
-#define CMDLINE_PATH_MAXSIZE 100
+#define CMDLINE_PATH_MAXSIZE 81
 #define MAX_STAT_LEN 128
 //Funkcija koja proverava da li string sadrzi samo brojeve
 int is_number(const char *str) {
@@ -119,7 +119,7 @@ void print_process_info(const char *pid){
         	strcpy(stime, token);
             break;
         }
-        token = strtok(NULL, " "); // Continue tokenizing
+        token = strtok(NULL, " ");
         i++;
     }
 	long int usertime = atoi(utime);
@@ -149,10 +149,15 @@ void print_process_info(const char *pid){
 	strftime(time, 10, "%H:%M", localtime(&(attr.st_ctime)));
 
 	//Pravljenje %CPU sekcije
-	
+	unsigned long long int starttime = atoi(time);
+	struct timespec current;
+	clock_gettime(CLOCK_MONOTONIC, &current);
+	unsigned long long currentSeconds = current.tv_sec;
+	unsigned long long elapsedTime = currentSeconds - (starttime / sysconf(_SC_CLK_TCK));
+	float cpuUtilization = ((usertime + systime)*100.0)/(elapsedTime * sysconf(_SC_CLK_TCK));
 
 
-	printf("%-8s %5s %6li %6li    ?     %3c %s %i:%i  %-3s\n", user, pid, vsz, rss, state, time, hour, minute, cmdline);
+	printf("%-8s %5s %.1f %6li %6li    ?     %3c %s %i:%i  %-3s\n", user, pid, cpuUtilization, vsz, rss, state, time, hour, minute, cmdline);
 }
 
 void list_processes(){
@@ -181,7 +186,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	//printf("Prvi argument: %s, Drugi argument: %s, i broj argumenata je:%d\n", argv[0],argv[1], argc);
-	printf("USER\tPID\tVSZ\tRSS\tTTY  STAT START TIME\tCOMMAND\n");
+	printf("USER\tPID   %%CPU   VSZ     RSS   TTY  STAT  START TIME\tCOMMAND\n");
 	list_processes();
 	return 0;
 }
