@@ -8,7 +8,7 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
+#define _XOPEN_SOURCE 700
 #define CMDLINE_PATH_MAXSIZE 100
 #define MAX_STAT_LEN 128
 //Funkcija koja proverava da li string sadrzi samo brojeve
@@ -96,25 +96,25 @@ void print_process_info(const char *pid){
 	while(vsz > 999999){
 		vsz /= 10;
 	}
-	//Citanje uptime-a
+	//Citanje START vremena
 	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/stat", pid);
 	cmdline_file = fopen(cmdline_path, "r");
 	if(cmdline_file == NULL){
 		fprintf(stderr, "Greska prilikom otvaranja stat fajla za proces: %s\n", pid);
 		return;
 	}
-	//Cita sadrzaj fajla
-	//char buffer[MAX_STAT_LEN];
-	//fgets(buffer, MAX_STAT_LEN, cmdline_file);
 	fclose(cmdline_file);
-	//time_t now = time();
-	//localtime
+	//Uzimanje vremena i poredjenje sa trenutnim danom
+	time_t currentTime = time(NULL);
+	struct tm tmCurr = *localtime(&currentTime);
 	struct stat attr;
 	stat(cmdline_path, &attr);
+	struct tm tm2 = *localtime(&(attr.st_ctime));
+	if(tmCurr.tm_mday > tm2.tm_mday){
+		printf("%-8s %5s %6li %6li    ?     %3c %i.%i  %-3s\n", user, pid, vsz, rss, state, tm2.tm_mday, tm2.tm_mon, cmdline);
+		return;
+	}
 	char time[10];
-	//char time2[10];
-	//strftime(time2, 10, "%d-%m-%y", localtime(&(attr.st_ctime)));
-	//if(time2)
 	strftime(time, 10, "%H:%M", localtime(&(attr.st_ctime)));
 	printf("%-8s %5s %6li %6li    ?     %3c %s  %-3s\n", user, pid, vsz, rss, state, time, cmdline);
 }
