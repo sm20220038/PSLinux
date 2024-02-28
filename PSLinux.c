@@ -158,7 +158,7 @@ void print_process_info(const char *pid){
 	long int phsyicalMem = pages * pageSize;
 	float memUtilization = ((float)rss*1000.0 / (float)phsyicalMem) * 100.0;
 	if(tmCurr.tm_mday > tmProc.tm_mday){
-		printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %s %i.%i %i:%i %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, tmProc.tm_mday, tmProc.tm_mon, hour, minute, cmdline);
+		printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %i.%i %i:%i %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, tmProc.tm_mday, tmProc.tm_mon, hour, minute, cmdline);
 		return;
 	}
 	printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %s %i:%i  %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, time, hour, minute, cmdline);
