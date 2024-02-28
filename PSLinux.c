@@ -5,6 +5,9 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <pwd.h>
+#include <time.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #define CMDLINE_PATH_MAXSIZE 100
 #define MAX_STAT_LEN 128
@@ -101,39 +104,19 @@ void print_process_info(const char *pid){
 		return;
 	}
 	//Cita sadrzaj fajla
-	char buffer[MAX_STAT_LEN];
-	fgets(buffer, MAX_STAT_LEN, cmdline_file);
+	//char buffer[MAX_STAT_LEN];
+	//fgets(buffer, MAX_STAT_LEN, cmdline_file);
 	fclose(cmdline_file);
-
-	char *token = strtok(buffer, " ");
-	int i = 1;
-	while(token != NULL){
-		if(i==22){
-			break;
-		}
-		token = strtok(NULL, " ");
-		i++;
-	}
-	long int seconds = atoi(token);
-	int minutes = 0;
-	int hours = 0;
-	seconds = seconds / sysconf(_SC_CLK_TCK);
-	while(seconds >= 60){
-		minutes++;
-		seconds = seconds - 60;
-	}
-	while(minutes >= 60){
-		hours++;
-		minutes = minutes - 60;
-	}
-	if(minutes >=10){
-		printf("%-8s %5s %6li %6li    ?     %3c %d:%d  %-3s\n", user, pid, vsz, rss, state, hours, minutes, cmdline);
-	}
-	if(minutes < 10){
-		char minuteDigit = minutes + '0';
-		char stringMinute[3] = {'0', minuteDigit, '\0'};
-		printf("%-8s %5s %6li %6li    ?     %3c %d:%s  %-3s\n", user, pid, vsz, rss, state, hours, stringMinute, cmdline);
-	}
+	//time_t now = time();
+	//localtime
+	struct stat attr;
+	stat(cmdline_path, &attr);
+	char time[10];
+	//char time2[10];
+	//strftime(time2, 10, "%d-%m-%y", localtime(&(attr.st_ctime)));
+	//if(time2)
+	strftime(time, 10, "%H:%M", localtime(&(attr.st_ctime)));
+	printf("%-8s %5s %6li %6li    ?     %3c %s  %-3s\n", user, pid, vsz, rss, state, time, cmdline);
 }
 
 void list_processes(){
@@ -161,7 +144,7 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 	//printf("Prvi argument: %s, Drugi argument: %s, i broj argumenata je:%d\n", argv[0],argv[1], argc);
-	printf("USER\tPID\tVSZ\tRSS\tTTY\tSTAT\tUP-TIME\tCOMMAND\n");
+	printf("USER\tPID\tVSZ\tRSS\tTTY  STAT START\tCOMMAND\n");
 	list_processes();
 	return 0;
 }
