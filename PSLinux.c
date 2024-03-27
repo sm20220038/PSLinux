@@ -205,6 +205,10 @@ void print_process_info(const char *pid, int a){
 	if(a == 0){
 		printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %s %i:%i  %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, time, hour, minute, cmdline);
 	}
+	//ps u printovanje
+	if(a == 3 && tty > 0 && cmdline[0] != '/'){
+		printf("%-8s %5s %.1f %.1lf %6li   %5li pts/0 %3c    %s %i:%i    %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, time, hour, minute, cmdline);
+	}
 }
 
 void list_processes(int a){
