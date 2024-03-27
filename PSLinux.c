@@ -24,7 +24,7 @@ int is_number(const char *str) {
 
 
 //Funkcija koja ispisuje informacije o procesu
-void print_process_info(const char *pid){
+void print_process_info(const char *pid, int a){
 	char cmdline_path[CMDLINE_PATH_MAXSIZE];
 	FILE *cmdline_file;
 	char cmdline[CMDLINE_PATH_MAXSIZE], line[CMDLINE_PATH_MAXSIZE];
@@ -122,6 +122,29 @@ void print_process_info(const char *pid){
         token = strtok(NULL, " ");
         i++;
     }
+	//Citanje tty_nr iz stat fajla
+	snprintf(cmdline_path, CMDLINE_PATH_MAXSIZE, "/proc/%s/stat", pid);
+	cmdline_file = fopen(cmdline_path, "r");
+	if(cmdline_file == NULL){
+		fprintf(stderr, "Greska prilikom otvaranja stat fajla za proces: %s\n", pid);
+		return;
+	}
+	char buffer2[MAX_STAT_LEN];
+	fgets(buffer2, MAX_STAT_LEN, cmdline_file);
+	fclose(cmdline_file);
+
+	char *token2 = strtok(buffer2, " ");
+	char tty_nr[8];
+    i = 1;
+    while (token2 != NULL) {
+        if (i == 8) {
+        	strcpy(tty_nr,token2);
+			break;
+		}
+        token2 = strtok(NULL, " ");
+        i++;
+    }
+	int tty = atoi(tty_nr);
 	long int usertime = atoi(utime);
 	long int systime = atoi(stime);
 	int collective = usertime + systime;
@@ -143,7 +166,9 @@ void print_process_info(const char *pid){
 	struct tm tmProc = *localtime(&(attr.st_ctime));
 	char time[10];
 	strftime(time, 10, "%H:%M", localtime(&(attr.st_ctime)));
-
+	if(a == 1 && tty >= 0){
+		printf("%5s pts/0 00:00:00 %-3s %d\n",pid, cmdline, tty);
+	}
 	//Pravljenje %CPU sekcije
 	unsigned long long int starttime = atoi(time);
 	struct timespec current;
@@ -157,14 +182,17 @@ void print_process_info(const char *pid){
 	long int pageSize = sysconf(_SC_PAGE_SIZE);
 	long int phsyicalMem = pages * pageSize;
 	float memUtilization = ((float)rss*1000.0 / (float)phsyicalMem) * 100.0;
-	if(tmCurr.tm_mday > tmProc.tm_mday){
-		printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %i.%i %i:%i %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, tmProc.tm_mday, tmProc.tm_mon, hour, minute, cmdline);
-		return;
+	char month[12][3] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+	//if(tmCurr.tm_mday > tmProc.tm_mday && a == 0){
+	//	printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %c%c%c%i %i:%i %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, month[tmCurr.tm_mon][0], month[tmCurr.tm_mon][1],month[tmCurr.tm_mon][2], tmProc.tm_mday, hour, minute, cmdline);
+	//	return;
+	//}
+	if(a == 0){
+		printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %s %i:%i  %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, time, hour, minute, cmdline);
 	}
-	printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %s %i:%i  %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, time, hour, minute, cmdline);
 }
 
-void list_processes(){
+void list_processes(int a){
 	DIR *proc_dir;
 	struct dirent *entry;
 	//Otvara /proc direktorijum
@@ -178,19 +206,24 @@ void list_processes(){
 	while((entry = readdir(proc_dir)) != NULL){
 		//Proverava da li je sadrzaj direktorijum i da li se njegovo ime sastoji samo od brojeva
 		if(entry->d_type == DT_DIR && is_number(entry->d_name)){
-			print_process_info(entry->d_name);
+			print_process_info(entry->d_name, a);
 		}
 	}
 	closedir(proc_dir);
 }
 
 int main(int argc, char *argv[]){
-	if(argv[1] != NULL && !strcmp(argv[1], "--help")){
+	if(argv[1] == NULL){
+		printf("  PID  TTY      TIME\tCMD\n");
+		list_processes(1);
+	} else if (!strcmp(argv[1], "--help")){
 		printf(" main [options]\n\n Try 'main --help <simple|list|output|threads|misc|all>'\n  or 'main --help <s|l|o|t|m|a>'\n for additional help text.\n");
 		return 0;
+	
+	} else if(!strcmp(argv[1], "aux")){
+		printf("USER\tPID   %%CPU %%MEM   VSZ     RSS   TTY  STAT  START TIME\tCOMMAND\n");
+		list_processes(0);
 	}
 	//printf("Prvi argument: %s, Drugi argument: %s, i broj argumenata je:%d\n", argv[0],argv[1], argc);
-	printf("USER\tPID   %%CPU %%MEM   VSZ     RSS   TTY  STAT  START TIME\tCOMMAND\n");
-	list_processes();
 	return 0;
 }
