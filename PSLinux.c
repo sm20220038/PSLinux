@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <dirent.h>
 #include <string.h>
 #include <ctype.h>
@@ -7,7 +8,6 @@
 #include <pwd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <time.h>
 
 #define _XOPEN_SOURCE 700
 #define CMDLINE_PATH_MAXSIZE 81
@@ -55,9 +55,9 @@ void print_process_info(const char *pid, int a){
 		fprintf(stderr, "Greska prilikom otvaranja status fajla za proces: %s\n", pid);
 		return;
 	}
+	__uid_t uid;
 	while(fgets(cmdline_path, CMDLINE_PATH_MAXSIZE, cmdline_file)){
 		if(strncmp(cmdline_path, "Uid:", 4) == 0){
-			__uid_t uid;
 			sscanf(cmdline_path, "%*s %u", &uid);
 			struct passwd *pw = getpwuid(uid);
 			if(pw){
@@ -166,8 +166,19 @@ void print_process_info(const char *pid, int a){
 	struct tm tmProc = *localtime(&(attr.st_ctime));
 	char time[10];
 	strftime(time, 10, "%H:%M", localtime(&(attr.st_ctime)));
-	if(a == 1 && tty >= 0){
-		printf("%5s pts/0 00:00:00 %-3s %d\n",pid, cmdline, tty);
+
+	//ps obican printovanje
+	if(a == 1 && tty > 0 && cmdline[0] != '/'){
+		printf("%5s pts/0 00:00:00 %-3s\n",pid, cmdline);
+	}
+
+	//ps x printovanje
+	if(a == 2 && uid == (unsigned long int)getuid()){
+		if(tty > 0){
+			printf("%5s pts/0 %2c    %i:%i  %-3s\n",pid, state, hour, minute, cmdline);
+		} else{
+			printf("%5s ?    %3c    %i:%i  %-3s\n",pid, state, hour, minute, cmdline);
+		}
 	}
 	//Pravljenje %CPU sekcije
 	unsigned long long int starttime = atoi(time);
@@ -182,11 +193,15 @@ void print_process_info(const char *pid, int a){
 	long int pageSize = sysconf(_SC_PAGE_SIZE);
 	long int phsyicalMem = pages * pageSize;
 	float memUtilization = ((float)rss*1000.0 / (float)phsyicalMem) * 100.0;
-	char month[12][3] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+	//Propali pokusaj za ako je upaljeno pre nego trenutnog datuma
+	//char month[12][3] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 	//if(tmCurr.tm_mday > tmProc.tm_mday && a == 0){
 	//	printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %c%c%c%i %i:%i %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, month[tmCurr.tm_mon][0], month[tmCurr.tm_mon][1],month[tmCurr.tm_mon][2], tmProc.tm_mday, hour, minute, cmdline);
 	//	return;
 	//}
+
+	//ps aux printovanje
 	if(a == 0){
 		printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %s %i:%i  %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, time, hour, minute, cmdline);
 	}
@@ -223,6 +238,12 @@ int main(int argc, char *argv[]){
 	} else if(!strcmp(argv[1], "aux")){
 		printf("USER\tPID   %%CPU %%MEM   VSZ     RSS   TTY  STAT  START TIME\tCOMMAND\n");
 		list_processes(0);
+	} else if(!strcmp(argv[1], "x")){
+		printf("  PID  TTY  STAT  TIME\tCOMMAND\n");
+		list_processes(2);
+	} else if(!strcmp(argv[1], "u")){
+		printf("USER\tPID   %%CPU %%MEM   VSZ     RSS   TTY  STAT  START TIME\tCOMMAND\n");
+		list_processes(3);
 	}
 	//printf("Prvi argument: %s, Drugi argument: %s, i broj argumenata je:%d\n", argv[0],argv[1], argc);
 	return 0;
