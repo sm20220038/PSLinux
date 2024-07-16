@@ -1,12 +1,10 @@
-# PSLinux\
+# PSLinux
 > Ovaj C program je nalik ps funkciji u Bash-u rađen za projektni rad iz Arhitekture računara i Operativni sistema na Fakultetu Organizacionih Nauka
 ## Namena programa
 > Program služi za ispisivanje detaljnih informacija o procesima na Linux operativnim sistemima. Čita podatke iz /proc direktorijuma i prikazuje ih u terminalu.
-## \
-## Način korišćenja\
+## Način korišćenja
 ### 1. Kompajliranje programa
 >Kompilacija programa se vrši pozivom iz direktorijuma gde je projekat, sa komandne linije: ```make``` koji generiše konačan program.
-## \
 ### 2. Pokretanje programa
 > Program se pokreće pomoću `./main [opcije]` gde su moguće opcije opisane u nastavku.
 ### 3. Opcije
