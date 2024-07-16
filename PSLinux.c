@@ -202,13 +202,6 @@ void print_process_info(const char *pid, int a){
 	long int phsyicalMem = pages * pageSize;
 	float memUtilization = ((float)rss*1000.0 / (float)phsyicalMem) * 100.0;
 
-	//Propali pokusaj za ako je upaljeno pre nego trenutnog datuma
-	//char month[12][3] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-	//if(tmCurr.tm_mday > tmProc.tm_mday && a == 0){
-	//	printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %c%c%c%i %i:%i %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, month[tmCurr.tm_mon][0], month[tmCurr.tm_mon][1],month[tmCurr.tm_mon][2], tmProc.tm_mday, hour, minute, cmdline);
-	//	return;
-	//}
-
 	//ps aux printovanje
 	if(a == 0){
 		printf("%-8s %5s %.1f %.1lf %6li %6li    ?     %3c %s %i:%i  %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, time, hour, minute, cmdline);
@@ -216,6 +209,11 @@ void print_process_info(const char *pid, int a){
 	//ps u printovanje
 	if(a == 3 && tty > 0 && cmdline[0] != '/'){
 		printf("%-8s %5s %.1f %.1lf %6li   %5li pts/0 %3c    %s %i:%i    %-3s\n", user, pid, cpuUtilization, memUtilization, vsz, rss, state, time, hour, minute, cmdline);
+	}
+	if(a == 4 && uid == (unsigned long int)getuid()){
+		if(tty > 0){
+			printf("%5s pts/0 %2c    %i:%i %-3s\n",pid, state, hour, minute, cmdline);
+		}
 	}
 }
 
@@ -244,11 +242,11 @@ int main(int argc, char *argv[]){
 	if(argv[1] == NULL){
 		printf("  PID  TTY      TIME\tCMD\n");
 		list_processes(1);
-	} else if (!strcmp(argv[1], "--help")){
-		printf(" main [options]\n\n Try 'main --help <simple|list|output|threads|misc|all>'\n  or 'main --help <s|l|o|t|m|a>'\n for additional help text.\n");
-		return 0;
-	
-	} else if(!strcmp(argv[1], "aux")){
+	}else if(!strcmp(argv[1], "a")){
+		printf("  PID  TTY  STAT  TIME\tCOMMAND\n");
+		list_processes(4);
+	}
+	else if(!strcmp(argv[1], "aux")){
 		printf("USER\tPID   %%CPU %%MEM   VSZ     RSS   TTY  STAT  START TIME\tCOMMAND\n");
 		list_processes(0);
 	} else if(!strcmp(argv[1], "x")){
@@ -257,7 +255,10 @@ int main(int argc, char *argv[]){
 	} else if(!strcmp(argv[1], "u")){
 		printf("USER\tPID   %%CPU %%MEM   VSZ     RSS   TTY  STAT  START TIME\tCOMMAND\n");
 		list_processes(3);
+	} else{
+		printf("main [options]:\n aux\t all processes of effective user and without controlling ttys\n x\t processes without controlling ttys\n u\t processes of effective user\n a\t all processes with tty, including other users \n <null>  simple display of active processes\n");
+		return 0;
 	}
-	
+
 	return 0;
 }
